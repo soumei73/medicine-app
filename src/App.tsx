@@ -20,6 +20,21 @@ export default function App() {
 
   function handleTake(medicineId: string, slot: Slot) {
     setRecords((prev) => [...prev, { medicineId, slot, takenAt: new Date().toISOString() }]);
+    setMedicines((prev) =>
+      prev.map((m) =>
+        m.id === medicineId ? { ...m, remainingCount: Math.max(0, m.remainingCount - m.dosePerTake) } : m,
+      ),
+    );
+  }
+
+  function handleRefill(medicineId: string) {
+    const input = prompt('補充する数量を入力してください');
+    if (input === null) return;
+    const amount = Number(input);
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    setMedicines((prev) =>
+      prev.map((m) => (m.id === medicineId ? { ...m, remainingCount: m.remainingCount + amount } : m)),
+    );
   }
 
   function handleAdd(medicine: Medicine) {
@@ -31,9 +46,10 @@ export default function App() {
     setMedicines((prev) => prev.filter((m) => m.id !== id));
   }
 
-  const morningMeds = medicines.filter((m) => m.schedule === 'morning_evening');
+  const morningMeds = medicines.filter((m) => m.schedule === 'morning_evening' || m.schedule === 'morning_only');
+  const eveningMeds = medicines.filter((m) => m.schedule === 'morning_evening' || m.schedule === 'evening_only');
   const allMorningDone = morningMeds.length > 0 && morningMeds.every((m) => isTakenToday(records, m.id, 'morning'));
-  const allEveningDone = medicines.length > 0 && medicines.every((m) => isTakenToday(records, m.id, 'evening'));
+  const allEveningDone = eveningMeds.length > 0 && eveningMeds.every((m) => isTakenToday(records, m.id, 'evening'));
 
   return (
     <div className="min-h-svh bg-gray-50 pb-24">
@@ -55,13 +71,13 @@ export default function App() {
             </div>
             <div className="flex flex-col gap-3">
               {morningMeds.map((m) => (
-                <MedicineCard key={m.id} medicine={m} records={records} onTake={handleTake} onDelete={handleDelete} displaySlots={['morning']} />
+                <MedicineCard key={m.id} medicine={m} records={records} onTake={handleTake} onDelete={handleDelete} onRefill={handleRefill} displaySlots={['morning']} />
               ))}
             </div>
           </section>
         )}
 
-        {medicines.length > 0 && (
+        {eveningMeds.length > 0 && (
           <section>
             <div className="flex items-center gap-2 mb-2 px-1">
               <span className="text-lg">🌙</span>
@@ -69,8 +85,8 @@ export default function App() {
               {allEveningDone && <span className="text-xs text-green-500 font-medium">✓ 完了</span>}
             </div>
             <div className="flex flex-col gap-3">
-              {medicines.map((m) => (
-                <MedicineCard key={m.id} medicine={m} records={records} onTake={handleTake} onDelete={handleDelete} displaySlots={['evening']} />
+              {eveningMeds.map((m) => (
+                <MedicineCard key={m.id} medicine={m} records={records} onTake={handleTake} onDelete={handleDelete} onRefill={handleRefill} displaySlots={['evening']} />
               ))}
             </div>
           </section>

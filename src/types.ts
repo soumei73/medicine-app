@@ -1,10 +1,10 @@
-export type Schedule = 'morning_evening' | 'evening_only';
+export type Schedule = 'morning_evening' | 'morning_only' | 'evening_only';
 
 export interface Medicine {
   id: string;
   name: string;
   schedule: Schedule;
-  totalCount: number;       // 総残数（錠/回）
+  remainingCount: number;   // 残数（錠/回）
   dosePerTake: number;      // 1回あたりの量
   addedAt: string;          // ISO string
 }

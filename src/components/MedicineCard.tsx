@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, Pill } from 'lucide-react';
+import { CheckCircle2, Circle, Pill, PackagePlus } from 'lucide-react';
 import type { Medicine, TakeRecord, Slot } from '../types';
 import { isTakenToday, calcRemainingDays } from '../utils';
 
@@ -7,6 +7,7 @@ interface Props {
   records: TakeRecord[];
   onTake: (id: string, slot: Slot) => void;
   onDelete: (id: string) => void;
+  onRefill: (id: string) => void;
   displaySlots: Slot[];
 }
 
@@ -15,9 +16,9 @@ const SLOT_LABEL: Record<Slot, string> = {
   evening: '夜',
 };
 
-export default function MedicineCard({ medicine, records, onTake, onDelete, displaySlots }: Props) {
+export default function MedicineCard({ medicine, records, onTake, onDelete, onRefill, displaySlots }: Props) {
   const slots = displaySlots;
-  const remainingDays = calcRemainingDays(medicine, records);
+  const remainingDays = calcRemainingDays(medicine);
   const isLow = remainingDays <= 3;
   const isEmpty = remainingDays === 0;
 
@@ -28,13 +29,22 @@ export default function MedicineCard({ medicine, records, onTake, onDelete, disp
           <Pill size={18} className="text-blue-400 shrink-0" />
           <span className="font-bold text-gray-800 text-base">{medicine.name}</span>
         </div>
-        <button
-          onClick={() => onDelete(medicine.id)}
-          className="text-gray-300 hover:text-red-400 text-xl leading-none px-1"
-          aria-label="削除"
-        >
-          ×
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onRefill(medicine.id)}
+            className="text-gray-300 hover:text-blue-400 p-1"
+            aria-label="補充"
+          >
+            <PackagePlus size={18} />
+          </button>
+          <button
+            onClick={() => onDelete(medicine.id)}
+            className="text-gray-300 hover:text-red-400 text-xl leading-none px-1"
+            aria-label="削除"
+          >
+            ×
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-2 mb-3">
@@ -58,9 +68,18 @@ export default function MedicineCard({ medicine, records, onTake, onDelete, disp
         })}
       </div>
 
-      <div className={`text-xs font-medium ${isEmpty ? 'text-red-500' : isLow ? 'text-orange-500' : 'text-gray-400'}`}>
-        {isEmpty ? '残りなし！補充が必要です' : isLow ? `残り約 ${remainingDays} 日分 ⚠️` : `残り約 ${remainingDays} 日分`}
-      </div>
+      {isEmpty ? (
+        <button
+          onClick={() => onRefill(medicine.id)}
+          className="w-full text-xs font-semibold text-red-500 bg-red-50 rounded-lg py-2 active:bg-red-100 transition-all"
+        >
+          残りなし！タップして補充する
+        </button>
+      ) : (
+        <div className={`text-xs font-medium ${isLow ? 'text-orange-500' : 'text-gray-400'}`}>
+          {isLow ? `残り約 ${remainingDays} 日分 ⚠️` : `残り約 ${remainingDays} 日分`}
+        </div>
+      )}
     </div>
   );
 }

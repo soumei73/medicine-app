@@ -15,12 +15,7 @@ export function isTakenToday(records: TakeRecord[], medicineId: string, slot: Sl
   );
 }
 
-export function calcRemainingDays(medicine: Medicine, records: TakeRecord[]): number {
-  const usedDoses = records
-    .filter((r) => r.medicineId === medicine.id)
-    .length;
-  const usedCount = usedDoses * medicine.dosePerTake;
-  const remaining = Math.max(0, medicine.totalCount - usedCount);
+export function calcRemainingDays(medicine: Medicine): number {
   const dosesPerDay = medicine.schedule === 'morning_evening' ? 2 : 1;
-  return Math.floor(remaining / (dosesPerDay * medicine.dosePerTake));
+  return Math.floor(medicine.remainingCount / (dosesPerDay * medicine.dosePerTake));
 }

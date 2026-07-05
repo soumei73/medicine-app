@@ -9,17 +9,17 @@ interface Props {
 export default function AddMedicineModal({ onAdd, onClose }: Props) {
   const [name, setName] = useState('');
   const [schedule, setSchedule] = useState<Schedule>('morning_evening');
-  const [totalCount, setTotalCount] = useState('');
+  const [remainingCount, setRemainingCount] = useState('');
   const [dosePerTake, setDosePerTake] = useState('1');
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !totalCount) return;
+    if (!name.trim() || !remainingCount) return;
     onAdd({
       id: crypto.randomUUID(),
       name: name.trim(),
       schedule,
-      totalCount: Number(totalCount),
+      remainingCount: Number(remainingCount),
       dosePerTake: Number(dosePerTake),
       addedAt: new Date().toISOString(),
     });
@@ -61,6 +61,14 @@ export default function AddMedicineModal({ onAdd, onClose }: Props) {
               </button>
               <button
                 type="button"
+                onClick={() => setSchedule('morning_only')}
+                className={`flex-1 py-3 rounded-xl text-sm font-semibold border transition-all
+                  ${schedule === 'morning_only' ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-600 border-gray-200'}`}
+              >
+                朝のみ
+              </button>
+              <button
+                type="button"
                 onClick={() => setSchedule('evening_only')}
                 className={`flex-1 py-3 rounded-xl text-sm font-semibold border transition-all
                   ${schedule === 'evening_only' ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-600 border-gray-200'}`}
@@ -75,8 +83,8 @@ export default function AddMedicineModal({ onAdd, onClose }: Props) {
               <label className="block text-sm text-gray-500 mb-1">残り総数</label>
               <input
                 type="number"
-                value={totalCount}
-                onChange={(e) => setTotalCount(e.target.value)}
+                value={remainingCount}
+                onChange={(e) => setRemainingCount(e.target.value)}
                 placeholder="例: 30"
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base outline-none focus:border-blue-400"
                 min="1"
