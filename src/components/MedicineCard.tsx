@@ -1,13 +1,15 @@
-import { CheckCircle2, Circle, Pill, PackagePlus } from 'lucide-react';
+import { CheckCircle2, Circle, Pill, PackagePlus, Pencil } from 'lucide-react';
 import type { Medicine, TakeRecord, Slot } from '../types';
-import { isTakenToday, calcRemainingDays } from '../utils';
+import { isTakenToday, calcRemainingDays, last7DayStatuses } from '../utils';
 
 interface Props {
   medicine: Medicine;
   records: TakeRecord[];
   onTake: (id: string, slot: Slot) => void;
+  onUntake: (id: string, slot: Slot) => void;
   onDelete: (id: string) => void;
   onRefill: (id: string) => void;
+  onEdit: (medicine: Medicine) => void;
   displaySlots: Slot[];
 }
 
@@ -16,11 +18,19 @@ const SLOT_LABEL: Record<Slot, string> = {
   evening: '夜',
 };
 
-export default function MedicineCard({ medicine, records, onTake, onDelete, onRefill, displaySlots }: Props) {
+const DOT_STYLE = {
+  done: 'bg-green-400',
+  partial: 'bg-yellow-400',
+  missed: 'bg-gray-200',
+  before: 'bg-transparent border border-gray-100',
+} as const;
+
+export default function MedicineCard({ medicine, records, onTake, onUntake, onDelete, onRefill, onEdit, displaySlots }: Props) {
   const slots = displaySlots;
   const remainingDays = calcRemainingDays(medicine);
   const isLow = remainingDays <= 3;
   const isEmpty = remainingDays === 0;
+  const history = last7DayStatuses(medicine, records);
 
   return (
     <div className={`bg-white rounded-2xl shadow-sm p-4 border-l-4 ${isEmpty ? 'border-red-500' : isLow ? 'border-orange-400' : 'border-blue-400'}`}>
@@ -30,6 +40,13 @@ export default function MedicineCard({ medicine, records, onTake, onDelete, onRe
           <span className="font-bold text-gray-800 text-base">{medicine.name}</span>
         </div>
         <div className="flex items-center gap-1">
+          <button
+            onClick={() => onEdit(medicine)}
+            className="text-gray-300 hover:text-blue-400 p-1"
+            aria-label="編集"
+          >
+            <Pencil size={16} />
+          </button>
           <button
             onClick={() => onRefill(medicine.id)}
             className="text-gray-300 hover:text-blue-400 p-1"
@@ -53,8 +70,7 @@ export default function MedicineCard({ medicine, records, onTake, onDelete, onRe
           return (
             <button
               key={slot}
-              onClick={() => !taken && onTake(medicine.id, slot)}
-              disabled={taken}
+              onClick={() => (taken ? onUntake(medicine.id, slot) : onTake(medicine.id, slot))}
               className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-all active:scale-95
                 ${taken
                   ? 'bg-green-50 text-green-600 border border-green-200'
@@ -63,23 +79,35 @@ export default function MedicineCard({ medicine, records, onTake, onDelete, onRe
             >
               {taken ? <CheckCircle2 size={18} /> : <Circle size={18} />}
               {SLOT_LABEL[slot]}
+              {taken && <span className="text-[10px] text-green-400 font-normal">タップで取消</span>}
             </button>
           );
         })}
       </div>
 
-      {isEmpty ? (
-        <button
-          onClick={() => onRefill(medicine.id)}
-          className="w-full text-xs font-semibold text-red-500 bg-red-50 rounded-lg py-2 active:bg-red-100 transition-all"
-        >
-          残りなし！タップして補充する
-        </button>
-      ) : (
-        <div className={`text-xs font-medium ${isLow ? 'text-orange-500' : 'text-gray-400'}`}>
-          {isLow ? `残り約 ${remainingDays} 日分 ⚠️` : `残り約 ${remainingDays} 日分`}
+      <div className="flex items-center justify-between">
+        {isEmpty ? (
+          <button
+            onClick={() => onRefill(medicine.id)}
+            className="text-xs font-semibold text-red-500 bg-red-50 rounded-lg py-1.5 px-3 active:bg-red-100 transition-all"
+          >
+            残りなし！タップして補充
+          </button>
+        ) : (
+          <div className={`text-xs font-medium ${isLow ? 'text-orange-500' : 'text-gray-400'}`}>
+            {isLow ? `残り約 ${remainingDays} 日分 ⚠️` : `残り約 ${remainingDays} 日分`}
+          </div>
+        )}
+
+        <div className="flex items-end gap-1">
+          {history.map((day, i) => (
+            <div key={i} className="flex flex-col items-center gap-0.5">
+              <span className={`text-[8px] ${i === 6 ? 'text-blue-400 font-bold' : 'text-gray-300'}`}>{day.label}</span>
+              <span className={`w-2 h-2 rounded-full ${DOT_STYLE[day.status]}`} />
+            </div>
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 }

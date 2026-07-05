@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Pill } from 'lucide-react';
 import type { Medicine, TakeRecord, Slot } from './types';
 import { loadMedicines, saveMedicines, loadRecords, saveRecords } from './storage';
-import { isTakenToday } from './utils';
+import { isTakenToday, toDateStr, todayStr } from './utils';
 import MedicineCard from './components/MedicineCard';
 import AddMedicineModal from './components/AddMedicineModal';
 
@@ -14,6 +14,7 @@ export default function App() {
   const [medicines, setMedicines] = useState<Medicine[]>(() => loadMedicines());
   const [records, setRecords] = useState<TakeRecord[]>(() => loadRecords());
   const [showAdd, setShowAdd] = useState(false);
+  const [editTarget, setEditTarget] = useState<Medicine | null>(null);
 
   useEffect(() => { saveMedicines(medicines); }, [medicines]);
   useEffect(() => { saveRecords(records); }, [records]);
@@ -24,6 +25,22 @@ export default function App() {
       prev.map((m) =>
         m.id === medicineId ? { ...m, remainingCount: Math.max(0, m.remainingCount - m.dosePerTake) } : m,
       ),
+    );
+  }
+
+  function handleUntake(medicineId: string, slot: Slot) {
+    if (!confirm('今日の記録を取り消しますか？')) return;
+    const today = todayStr();
+    setRecords((prev) => {
+      // 今日の該当記録を1件だけ削除
+      const idx = prev.findIndex(
+        (r) => r.medicineId === medicineId && r.slot === slot && toDateStr(new Date(r.takenAt)) === today,
+      );
+      if (idx === -1) return prev;
+      return [...prev.slice(0, idx), ...prev.slice(idx + 1)];
+    });
+    setMedicines((prev) =>
+      prev.map((m) => (m.id === medicineId ? { ...m, remainingCount: m.remainingCount + m.dosePerTake } : m)),
     );
   }
 
@@ -41,6 +58,10 @@ export default function App() {
     setMedicines((prev) => [...prev, medicine]);
   }
 
+  function handleUpdate(updated: Medicine) {
+    setMedicines((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+  }
+
   function handleDelete(id: string) {
     if (!confirm('この薬を削除しますか？')) return;
     setMedicines((prev) => prev.filter((m) => m.id !== id));
@@ -50,6 +71,15 @@ export default function App() {
   const eveningMeds = medicines.filter((m) => m.schedule === 'morning_evening' || m.schedule === 'evening_only');
   const allMorningDone = morningMeds.length > 0 && morningMeds.every((m) => isTakenToday(records, m.id, 'morning'));
   const allEveningDone = eveningMeds.length > 0 && eveningMeds.every((m) => isTakenToday(records, m.id, 'evening'));
+
+  const cardProps = {
+    records,
+    onTake: handleTake,
+    onUntake: handleUntake,
+    onDelete: handleDelete,
+    onRefill: handleRefill,
+    onEdit: setEditTarget,
+  };
 
   return (
     <div className="min-h-svh bg-gray-50 pb-24">
@@ -71,7 +101,7 @@ export default function App() {
             </div>
             <div className="flex flex-col gap-3">
               {morningMeds.map((m) => (
-                <MedicineCard key={m.id} medicine={m} records={records} onTake={handleTake} onDelete={handleDelete} onRefill={handleRefill} displaySlots={['morning']} />
+                <MedicineCard key={m.id} medicine={m} {...cardProps} displaySlots={['morning']} />
               ))}
             </div>
           </section>
@@ -86,7 +116,7 @@ export default function App() {
             </div>
             <div className="flex flex-col gap-3">
               {eveningMeds.map((m) => (
-                <MedicineCard key={m.id} medicine={m} records={records} onTake={handleTake} onDelete={handleDelete} onRefill={handleRefill} displaySlots={['evening']} />
+                <MedicineCard key={m.id} medicine={m} {...cardProps} displaySlots={['evening']} />
               ))}
             </div>
           </section>
@@ -108,7 +138,10 @@ export default function App() {
         <Plus size={28} />
       </button>
 
-      {showAdd && <AddMedicineModal onAdd={handleAdd} onClose={() => setShowAdd(false)} />}
+      {showAdd && <AddMedicineModal onSave={handleAdd} onClose={() => setShowAdd(false)} />}
+      {editTarget && (
+        <AddMedicineModal initial={editTarget} onSave={handleUpdate} onClose={() => setEditTarget(null)} />
+      )}
     </div>
   );
 }

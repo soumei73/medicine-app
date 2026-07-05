@@ -2,26 +2,28 @@ import { useState } from 'react';
 import type { Medicine, Schedule } from '../types';
 
 interface Props {
-  onAdd: (medicine: Medicine) => void;
+  initial?: Medicine;
+  onSave: (medicine: Medicine) => void;
   onClose: () => void;
 }
 
-export default function AddMedicineModal({ onAdd, onClose }: Props) {
-  const [name, setName] = useState('');
-  const [schedule, setSchedule] = useState<Schedule>('morning_evening');
-  const [remainingCount, setRemainingCount] = useState('');
-  const [dosePerTake, setDosePerTake] = useState('1');
+export default function AddMedicineModal({ initial, onSave, onClose }: Props) {
+  const isEdit = !!initial;
+  const [name, setName] = useState(initial?.name ?? '');
+  const [schedule, setSchedule] = useState<Schedule>(initial?.schedule ?? 'morning_evening');
+  const [remainingCount, setRemainingCount] = useState(initial ? String(initial.remainingCount) : '');
+  const [dosePerTake, setDosePerTake] = useState(initial ? String(initial.dosePerTake) : '1');
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || !remainingCount) return;
-    onAdd({
-      id: crypto.randomUUID(),
+    onSave({
+      id: initial?.id ?? crypto.randomUUID(),
       name: name.trim(),
       schedule,
       remainingCount: Number(remainingCount),
       dosePerTake: Number(dosePerTake),
-      addedAt: new Date().toISOString(),
+      addedAt: initial?.addedAt ?? new Date().toISOString(),
     });
     onClose();
   }
@@ -33,7 +35,7 @@ export default function AddMedicineModal({ onAdd, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-5" />
-        <h2 className="text-lg font-bold text-gray-800 mb-4">薬を追加</h2>
+        <h2 className="text-lg font-bold text-gray-800 mb-4">{isEdit ? '薬を編集' : '薬を追加'}</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label className="block text-sm text-gray-500 mb-1">薬の名前</label>
@@ -44,7 +46,7 @@ export default function AddMedicineModal({ onAdd, onClose }: Props) {
               placeholder="例: ロキソニン、目薬A"
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base outline-none focus:border-blue-400"
               required
-              autoFocus
+              autoFocus={!isEdit}
             />
           </div>
 
@@ -87,7 +89,7 @@ export default function AddMedicineModal({ onAdd, onClose }: Props) {
                 onChange={(e) => setRemainingCount(e.target.value)}
                 placeholder="例: 30"
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base outline-none focus:border-blue-400"
-                min="1"
+                min="0"
                 required
               />
             </div>
@@ -108,7 +110,7 @@ export default function AddMedicineModal({ onAdd, onClose }: Props) {
             type="submit"
             className="bg-blue-500 text-white rounded-xl py-4 font-bold text-base active:bg-blue-600 transition-all"
           >
-            追加する
+            {isEdit ? '保存する' : '追加する'}
           </button>
         </form>
       </div>
